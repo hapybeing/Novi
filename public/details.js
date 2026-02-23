@@ -1,7 +1,7 @@
 const detailsMain = document.getElementById('detailsMain');
 const urlParams = new URLSearchParams(window.location.search);
 const targetId = urlParams.get('id');
-const source = urlParams.get('source'); // Used internally, not displayed
+const source = urlParams.get('source');
 
 async function loadDetails() {
     if (!targetId || !source) {
@@ -28,8 +28,10 @@ async function loadDetails() {
             
             const uniqueChapters = new Map();
             chapData.data.forEach(c => {
-                const chapNum = c.attributes.chapter || 'Oneshot';
-                if (!uniqueChapters.has(chapNum)) uniqueChapters.set(chapNum, { id: c.id, num: chapNum });
+                // Safely fallback to title or ID if the chapter number is blank
+                const chapKey = c.attributes.chapter || c.attributes.title || c.id; 
+                let display = c.attributes.chapter ? `Ch. ${c.attributes.chapter}` : (c.attributes.title || 'Extra');
+                if (!uniqueChapters.has(chapKey)) uniqueChapters.set(chapKey, { id: c.id, num: display });
             });
             chapters = Array.from(uniqueChapters.values());
 
@@ -46,8 +48,10 @@ async function loadDetails() {
             
             const uniqueChapters = new Map();
             chapData.chapters.forEach(c => {
-                const chapNum = c.chap || 'Oneshot';
-                if (!uniqueChapters.has(chapNum)) uniqueChapters.set(chapNum, { id: c.hid, num: chapNum });
+                // Safely fallback to title or ID if the chapter number is blank
+                const chapKey = c.chap || c.title || c.hid;
+                let display = c.chap ? `Ch. ${c.chap}` : (c.title || 'Extra');
+                if (!uniqueChapters.has(chapKey)) uniqueChapters.set(chapKey, { id: c.hid, num: display });
             });
             chapters = Array.from(uniqueChapters.values());
         }
@@ -76,9 +80,9 @@ function renderDetailsUI(manga, chapters) {
                      onclick="window.location.href='reader.html?chapterId=${encodeURIComponent(c.id)}&source=${source}&mangaId=${targetId}'"
                      onmouseover="this.style.borderColor='var(--accent)'" 
                      onmouseout="this.style.borderColor='var(--border)'">
-                    <div style="font-weight: bold; font-size: 1.1rem;">Ch. ${c.num}</div>
+                    <div style="font-weight: bold; font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${c.num}</div>
                 </div>
-            `).join('') : '<div class="system-msg">No chapters available yet.</div>'}
+            `).join('') : '<div class="system-msg">No English chapters available on this specific server. Try hunting for the alternative source.</div>'}
         </div>
     `;
 }
