@@ -19,11 +19,36 @@ function resetHome() {
     resultsGrid.innerHTML = '';
 }
 
+// --- Category Tag Dictionaries ---
+// APIs don't use words for categories, they use specific IDs.
+const mdTags = {
+    'Yaoi': '5920b825-4181-4a17-beeb-9918b0ff7a30', // Boys' Love UUID
+    'Yuri': 'a3c67850-4684-404e-9b7f-c69850ee5da6', // Girls' Love UUID
+    'Action': '391b0423-d847-456f-aff0-8b0cfc03066b',
+    'Isekai': 'ace04997-f6bd-436e-b261-779182101046',
+    'Fantasy': 'cdc58593-87dd-415e-bbc0-2ec27bf404cc'
+};
+const ckTags = {
+    'Yaoi': 'boys-love',
+    'Yuri': 'girls-love',
+    'Action': 'action',
+    'Isekai': 'isekai',
+    'Fantasy': 'fantasy'
+};
+
 // --- Source Modules ---
 const Sources = {
     MangaDex: async (query) => {
         try {
-            const res = await fetch(`https://api.mangadex.org/manga?title=${encodeURIComponent(query)}&limit=15&includes[]=cover_art&order[relevance]=desc`);
+            // Default text search
+            let url = `https://api.mangadex.org/manga?title=${encodeURIComponent(query)}&limit=15&includes[]=cover_art&order[relevance]=desc`;
+            
+            // IF it is a category click, use the Tag ID search instead, sorted by most popular
+            if (mdTags[query]) {
+                url = `https://api.mangadex.org/manga?includedTags[]=${mdTags[query]}&limit=15&includes[]=cover_art&order[followedCount]=desc&hasAvailableChapters=true`;
+            }
+            
+            const res = await fetch(url);
             if (!res.ok) throw new Error('MangaDex Blocked');
             const data = await res.json();
             
@@ -38,7 +63,15 @@ const Sources = {
     
     ComicK: async (query) => {
         try {
-            const res = await fetch(`https://api.comick.io/v1.0/search?q=${encodeURIComponent(query)}&limit=15`);
+            // Default text search
+            let url = `https://api.comick.io/v1.0/search?q=${encodeURIComponent(query)}&limit=15`;
+            
+            // IF it is a category click, use the genre search instead
+            if (ckTags[query]) {
+                url = `https://api.comick.io/v1.0/search?genres=${ckTags[query]}&limit=15&sort=follow`;
+            }
+            
+            const res = await fetch(url);
             if (!res.ok) throw new Error('ComicK Blocked');
             const data = await res.json();
             
@@ -53,7 +86,14 @@ const Sources = {
 // --- Core Functions ---
 async function searchAllSources(query) {
     if (!query) return;
-    searchInput.value = query; // Auto-fill the box if triggered by a category pill
+    
+    // Only put the text in the search box if it's NOT a category pill
+    if (!mdTags[query]) {
+        searchInput.value = query; 
+    } else {
+        searchInput.value = `[ Category: ${query} ]`;
+    }
+    
     showSearch();
     resultsGrid.innerHTML = `<div class="system-msg" style="color: var(--accent);">Executing parallel sweep for: ${query}...</div>`;
     
@@ -68,20 +108,16 @@ async function searchAllSources(query) {
     renderGrid(masterLibrary, resultsGrid);
 }
 
-// Netflix-Style Auto Load (UPDATED FOR SAFETY AND ERROR LOGGING)
+// Netflix-Style Auto Load
 async function getTrending() {
     try {
-        // Safer API query: Fetching 15 recent English-translated mangas with covers
         const res = await fetch('https://api.mangadex.org/manga?includes[]=cover_art&limit=15&availableTranslatedLanguage[]=en');
-        
-        // If the server rejects it, capture the exact error message
         if (!res.ok) {
             const errData = await res.text();
             throw new Error(`HTTP ${res.status} | ${errData.substring(0, 50)}...`);
         }
         
         const data = await res.json();
-        
         const trending = data.data.map(manga => {
             const title = manga.attributes.title.en || Object.values(manga.attributes.title)[0] || 'Unknown';
             const coverRel = manga.relationships.find(r => r.type === 'cover_art');
@@ -91,7 +127,6 @@ async function getTrending() {
 
         renderGrid(trending, trendingGrid);
     } catch (err) {
-        // Inject the raw error directly into the UI for debugging
         trendingGrid.innerHTML = `<div class="system-msg" style="color: #ef4444;">API Error: ${err.message}</div>`;
     }
 }
@@ -99,16 +134,14 @@ async function getTrending() {
 // --- UI Rendering ---
 function renderGrid(library, container) {
     if (library.length === 0) {
-        container.innerHTML = `<div class="system-msg" style="color: #ef4444;">Target evaded sweeps. No results found. (Note: ComicK may be blocked by browser CORS until wrapped in native app).</div>`;
+        container.innerHTML = `<div class="system-msg" style="color: #ef4444;">Target evaded sweeps. No results found.</div>`;
         return;
     }
 
     container.innerHTML = library.map(item => `
         <div style="background: var(--bg-surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; cursor: pointer; display: flex; flex-direction: column;" 
              onclick="window.location.href='details.html?id=${item.id}&source=${item.source}'">
-            
             <img src="${item.cover}" style="width: 100%; aspect-ratio: 2/3; object-fit: cover; background: #222;" loading="lazy" referrerpolicy="no-referrer">
-            
             <div style="padding: 1rem; flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
                 <div style="font-size: 0.9rem; font-weight: 600; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin-bottom: 0.5rem;">${item.title}</div>
                 <div style="font-size: 0.7rem; color: var(--accent); font-weight: bold; text-transform: uppercase;">[ ${item.source} ]</div>
@@ -120,6 +153,4 @@ function renderGrid(library, container) {
 // --- Event Listeners ---
 searchBtn.addEventListener('click', () => searchAllSources(searchInput.value.trim()));
 searchInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') searchAllSources(searchInput.value.trim()); });
-
-// Initialize App
 document.addEventListener('DOMContentLoaded', getTrending);
