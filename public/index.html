@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Novi Engine</title>
+    <link rel="stylesheet" href="style.css">
+    </head>
+<body>
+    <header class="top-nav">
+        <h1 class="logo">NOVI</h1>
+        <div class="nav-links">
+            <span class="active">Discover</span>
+            <span>Library</span>
+        </div>
+    </header>
+
+    <main id="app-container">
+        <section class="search-section">
+            <div class="search-box">
+                <input type="text" id="globalSearch" placeholder="Search across all sources...">
+                <button id="searchBtn">Hunt</button>
+            </div>
+        </section>
+
+        <section class="results-grid" id="resultsGrid">
+            <div class="system-msg">System initialized. Awaiting query.</div>
+        </section>
+    </main>
+
+    <script src="app.js"></script>
+</body>
+</html>
