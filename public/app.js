@@ -20,10 +20,9 @@ function resetHome() {
 }
 
 // --- Category Tag Dictionaries ---
-// APIs don't use words for categories, they use specific IDs.
 const mdTags = {
-    'Yaoi': '5920b825-4181-4a17-beeb-9918b0ff7a30', // Boys' Love UUID
-    'Yuri': 'a3c67850-4684-404e-9b7f-c69850ee5da6', // Girls' Love UUID
+    'Yaoi': '5920b825-4181-4a17-beeb-9918b0ff7a30',
+    'Yuri': 'a3c67850-4684-404e-9b7f-c69850ee5da6',
     'Action': '391b0423-d847-456f-aff0-8b0cfc03066b',
     'Isekai': 'ace04997-f6bd-436e-b261-779182101046',
     'Fantasy': 'cdc58593-87dd-415e-bbc0-2ec27bf404cc'
@@ -40,16 +39,11 @@ const ckTags = {
 const Sources = {
     MangaDex: async (query) => {
         try {
-            // Default text search
             let url = `https://api.mangadex.org/manga?title=${encodeURIComponent(query)}&limit=15&includes[]=cover_art&order[relevance]=desc`;
-            
-            // IF it is a category click, use the Tag ID search instead, sorted by most popular
-            if (mdTags[query]) {
-                url = `https://api.mangadex.org/manga?includedTags[]=${mdTags[query]}&limit=15&includes[]=cover_art&order[followedCount]=desc&hasAvailableChapters=true`;
-            }
+            if (mdTags[query]) url = `https://api.mangadex.org/manga?includedTags[]=${mdTags[query]}&limit=15&includes[]=cover_art&order[followedCount]=desc&hasAvailableChapters=true`;
             
             const res = await fetch(url);
-            if (!res.ok) throw new Error('MangaDex Blocked');
+            if (!res.ok) throw new Error('Blocked');
             const data = await res.json();
             
             return data.data.map(manga => {
@@ -63,16 +57,11 @@ const Sources = {
     
     ComicK: async (query) => {
         try {
-            // Default text search
             let url = `https://api.comick.io/v1.0/search?q=${encodeURIComponent(query)}&limit=15`;
-            
-            // IF it is a category click, use the genre search instead
-            if (ckTags[query]) {
-                url = `https://api.comick.io/v1.0/search?genres=${ckTags[query]}&limit=15&sort=follow`;
-            }
+            if (ckTags[query]) url = `https://api.comick.io/v1.0/search?genres=${ckTags[query]}&limit=15&sort=follow`;
             
             const res = await fetch(url);
-            if (!res.ok) throw new Error('ComicK Blocked');
+            if (!res.ok) throw new Error('Blocked');
             const data = await res.json();
             
             return data.map(manga => {
@@ -86,16 +75,11 @@ const Sources = {
 // --- Core Functions ---
 async function searchAllSources(query) {
     if (!query) return;
-    
-    // Only put the text in the search box if it's NOT a category pill
-    if (!mdTags[query]) {
-        searchInput.value = query; 
-    } else {
-        searchInput.value = `[ Category: ${query} ]`;
-    }
+    if (!mdTags[query]) searchInput.value = query; 
+    else searchInput.value = `[ Category: ${query} ]`;
     
     showSearch();
-    resultsGrid.innerHTML = `<div class="system-msg" style="color: var(--accent);">Executing parallel sweep for: ${query}...</div>`;
+    resultsGrid.innerHTML = `<div class="system-msg" style="color: var(--accent);">Executing sweep for: ${query}...</div>`;
     
     const fetchPromises = [ Sources.MangaDex(query), Sources.ComicK(query) ];
     const results = await Promise.allSettled(fetchPromises);
@@ -112,10 +96,7 @@ async function searchAllSources(query) {
 async function getTrending() {
     try {
         const res = await fetch('https://api.mangadex.org/manga?includes[]=cover_art&limit=15&availableTranslatedLanguage[]=en');
-        if (!res.ok) {
-            const errData = await res.text();
-            throw new Error(`HTTP ${res.status} | ${errData.substring(0, 50)}...`);
-        }
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
         
         const data = await res.json();
         const trending = data.data.map(manga => {
@@ -131,10 +112,10 @@ async function getTrending() {
     }
 }
 
-// --- UI Rendering ---
+// --- UI Rendering (SOURCE HIDDEN) ---
 function renderGrid(library, container) {
     if (library.length === 0) {
-        container.innerHTML = `<div class="system-msg" style="color: #ef4444;">Target evaded sweeps. No results found.</div>`;
+        container.innerHTML = `<div class="system-msg" style="color: #ef4444;">No results found.</div>`;
         return;
     }
 
@@ -142,9 +123,8 @@ function renderGrid(library, container) {
         <div style="background: var(--bg-surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; cursor: pointer; display: flex; flex-direction: column;" 
              onclick="window.location.href='details.html?id=${item.id}&source=${item.source}'">
             <img src="${item.cover}" style="width: 100%; aspect-ratio: 2/3; object-fit: cover; background: #222;" loading="lazy" referrerpolicy="no-referrer">
-            <div style="padding: 1rem; flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
-                <div style="font-size: 0.9rem; font-weight: 600; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin-bottom: 0.5rem;">${item.title}</div>
-                <div style="font-size: 0.7rem; color: var(--accent); font-weight: bold; text-transform: uppercase;">[ ${item.source} ]</div>
+            <div style="padding: 1rem; flex: 1; display: flex; flex-direction: column; justify-content: center;">
+                <div style="font-size: 0.9rem; font-weight: 600; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${item.title}</div>
             </div>
         </div>
     `).join('');
