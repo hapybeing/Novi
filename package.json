@@ -1,0 +1,15 @@
+{
+  "name": "novi",
+  "version": "1.0.0",
+  "description": "Novi Native Engine",
+  "scripts": {
+    "build": "echo 'Ready'"
+  },
+  "dependencies": {
+    "@capacitor/android": "latest",
+    "@capacitor/core": "latest"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "latest"
+  }
+}
