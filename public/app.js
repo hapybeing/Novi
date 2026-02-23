@@ -75,7 +75,7 @@ function renderResults(library) {
 
     resultsGrid.innerHTML = library.map(item => `
         <div style="background: var(--bg-surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; cursor: pointer;" 
-             onclick="alert('Routing to Details -> Source: ${item.source} | ID: ${item.id}')">
+             onclick="window.location.href='details.html?id=${item.id}&source=${item.source}'">
             
             <img src="${item.cover}" style="width: 100%; aspect-ratio: 2/3; object-fit: cover; background: #222;" loading="lazy" referrerpolicy="no-referrer">
             
