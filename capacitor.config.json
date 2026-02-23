@@ -1,0 +1,14 @@
+{
+  "appId": "com.gaurang.novi",
+  "appName": "Novi",
+  "webDir": "public",
+  "bundledWebRuntime": false,
+  "plugins": {
+    "CapacitorCookies": {
+      "enabled": true
+    },
+    "CapacitorHttp": {
+      "enabled": true
+    }
+  }
+}
