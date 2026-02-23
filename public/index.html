@@ -5,12 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Novi Engine</title>
     <link rel="stylesheet" href="style.css">
-    </head>
+</head>
 <body>
     <header class="top-nav">
         <h1 class="logo">NOVI</h1>
         <div class="nav-links">
-            <span class="active">Discover</span>
+            <span class="active" onclick="window.location.reload()">Discover</span>
             <span>Library</span>
         </div>
     </header>
@@ -18,14 +18,38 @@
     <main id="app-container">
         <section class="search-section">
             <div class="search-box">
-                <input type="text" id="globalSearch" placeholder="Search across all sources...">
+                <input type="text" id="globalSearch" placeholder="Search for titles, authors, or genres...">
                 <button id="searchBtn">Hunt</button>
             </div>
         </section>
 
-        <section class="results-grid" id="resultsGrid">
-            <div class="system-msg">System initialized. Awaiting query.</div>
-        </section>
+        <div id="homeView">
+            <div class="category-scroll">
+                <div class="category-pill" onclick="searchAllSources('Yaoi')">🦇 BL(Yaoi)</div>
+                <div class="category-pill" onclick="searchAllSources('Yuri')">🩸 GL(Yuri)</div>
+                <div class="category-pill" onclick="searchAllSources('Action')">🔥 Action</div>
+                <div class="category-pill" onclick="searchAllSources('Isekai')">⚔️ Isekai</div>
+                <div class="category-pill" onclick="searchAllSources('Fantasy')">✨ Fantasy</div>
+            </div>
+
+            <div class="trending-section">
+                <div class="section-header">
+                    <h2>Trending Now</h2>
+                    <span class="view-all">View All ></span>
+                </div>
+                <div class="horizontal-scroll" id="trendingGrid">
+                    <div class="system-msg" style="color: var(--accent);">Fetching trending data...</div>
+                </div>
+            </div>
+        </div>
+
+        <div id="searchResultsView" style="display: none;">
+            <div class="section-header" style="padding: 0 2rem; margin-bottom: 1rem;">
+                <h2>Search Results</h2>
+                <span class="view-all" onclick="resetHome()">Clear X</span>
+            </div>
+            <section class="results-grid" id="resultsGrid"></section>
+        </div>
     </main>
 
     <script src="app.js"></script>
