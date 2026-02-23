@@ -47,8 +47,8 @@ async function fetchChapterList() {
             const data = await req.json();
             const unique = new Map();
             data.data.forEach(c => {
-                const chapNum = c.attributes.chapter || 'Oneshot';
-                if (!unique.has(chapNum)) unique.set(chapNum, { id: c.id });
+                const chapKey = c.attributes.chapter || c.attributes.title || c.id;
+                if (!unique.has(chapKey)) unique.set(chapKey, { id: c.id });
             });
             allChapters = Array.from(unique.values());
         } else if (source === 'ComicK') {
@@ -56,8 +56,8 @@ async function fetchChapterList() {
             const data = await req.json();
             const unique = new Map();
             data.chapters.forEach(c => {
-                const chapNum = c.chap || 'Oneshot';
-                if (!unique.has(chapNum)) unique.set(chapNum, { id: c.hid });
+                const chapKey = c.chap || c.title || c.hid;
+                if (!unique.has(chapKey)) unique.set(chapKey, { id: c.hid });
             });
             allChapters = Array.from(unique.values());
         }
@@ -71,8 +71,8 @@ function updateNavButtons() {
     const prevBtn = document.getElementById('prevBtn');
     const nextBtn = document.getElementById('nextBtn');
     
-    // Note: Chapters are sorted descending (latest chapter is at index 0)
-    // So "Next Chapter" is index - 1, and "Previous Chapter" is index + 1
+    // Chapters are sorted newest to oldest. 
+    // Next Chapter = Index - 1 | Prev Chapter = Index + 1
     if (currentIndex > 0) {
         nextBtn.onclick = () => window.location.href = `reader.html?chapterId=${allChapters[currentIndex - 1].id}&source=${source}&mangaId=${mangaId}`;
         nextBtn.style.opacity = "1";
@@ -87,7 +87,7 @@ function updateNavButtons() {
 
 function renderImages(urls) {
     if (urls.length === 0) {
-        readerMain.innerHTML = `<div class="system-msg" style="margin-top: 5rem;">No pages found.</div>`;
+        readerMain.innerHTML = `<div class="system-msg" style="margin-top: 5rem;">No pages found. (External link payload)</div>`;
         return;
     }
     readerMain.innerHTML = urls.map(url => `
