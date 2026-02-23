@@ -92,18 +92,16 @@ async function searchAllSources(query) {
     renderGrid(masterLibrary, resultsGrid);
 }
 
-// Netflix-Style Auto Load
+// Netflix-Style Auto Load (SWITCHED TO COMICK)
 async function getTrending() {
     try {
-        const res = await fetch('https://api.mangadex.org/manga?includes[]=cover_art&limit=15&availableTranslatedLanguage[]=en');
+        const res = await fetch('https://api.comick.io/v1.0/search?limit=15&sort=follow');
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         
         const data = await res.json();
-        const trending = data.data.map(manga => {
-            const title = manga.attributes.title.en || Object.values(manga.attributes.title)[0] || 'Unknown';
-            const coverRel = manga.relationships.find(r => r.type === 'cover_art');
-            const coverUrl = coverRel ? `https://uploads.mangadex.org/covers/${manga.id}/${coverRel.attributes.fileName}.256.jpg` : '';
-            return { id: manga.id, title, cover: coverUrl, source: 'MangaDex' };
+        const trending = data.map(manga => {
+            const coverUrl = manga.md_covers && manga.md_covers[0] ? `https://meo.comick.pictures/${manga.md_covers[0].b2key}` : '';
+            return { id: manga.hid, title: manga.title || 'Unknown', cover: coverUrl, source: 'ComicK' };
         });
 
         renderGrid(trending, trendingGrid);
@@ -112,7 +110,7 @@ async function getTrending() {
     }
 }
 
-// --- UI Rendering (SOURCE HIDDEN) ---
+// --- UI Rendering ---
 function renderGrid(library, container) {
     if (library.length === 0) {
         container.innerHTML = `<div class="system-msg" style="color: #ef4444;">No results found.</div>`;
