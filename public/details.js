@@ -14,7 +14,7 @@ async function loadDetails() {
         let chapters = [];
 
         if (source === 'MangaDex') {
-            // 1. Fetch MangaDex Details
+            // Fetch Details
             const infoReq = await fetch(`https://api.mangadex.org/manga/${targetId}?includes[]=cover_art`);
             const infoData = await infoReq.json();
             const mdData = infoData.data;
@@ -24,17 +24,26 @@ async function loadDetails() {
             const coverRel = mdData.relationships.find(r => r.type === 'cover_art');
             manga.cover = coverRel ? `https://uploads.mangadex.org/covers/${targetId}/${coverRel.attributes.fileName}` : '';
 
-            // 2. Fetch MangaDex Chapters
-            const chapReq = await fetch(`https://api.mangadex.org/manga/${targetId}/feed?translatedLanguage[]=en&order[chapter]=desc&limit=100`);
+            // Fetch Chapters (Limit increased to 500)
+            const chapReq = await fetch(`https://api.mangadex.org/manga/${targetId}/feed?translatedLanguage[]=en&order[chapter]=desc&limit=500`);
             const chapData = await chapReq.json();
-            chapters = chapData.data.map(c => ({
-                id: c.id,
-                num: c.attributes.chapter || 'Oneshot',
-                title: c.attributes.title || `Chapter ${c.attributes.chapter}`
-            }));
+            
+            // Filter duplicates out (keeps only one version of each chapter number)
+            const uniqueChapters = new Map();
+            chapData.data.forEach(c => {
+                const chapNum = c.attributes.chapter || 'Oneshot';
+                if (!uniqueChapters.has(chapNum)) {
+                    uniqueChapters.set(chapNum, {
+                        id: c.id,
+                        num: chapNum,
+                        title: c.attributes.title || `Chapter ${chapNum}`
+                    });
+                }
+            });
+            chapters = Array.from(uniqueChapters.values());
 
         } else if (source === 'ComicK') {
-            // 1. Fetch ComicK Details
+            // Fetch Details
             const infoReq = await fetch(`https://api.comick.io/comic/${targetId}`);
             const infoData = await infoReq.json();
             
@@ -42,14 +51,22 @@ async function loadDetails() {
             manga.desc = infoData.comic.desc || 'No description available.';
             manga.cover = infoData.comic.md_covers ? `https://meo.comick.pictures/${infoData.comic.md_covers[0].b2key}` : '';
 
-            // 2. Fetch ComicK Chapters
-            const chapReq = await fetch(`https://api.comick.io/comic/${targetId}/chapters?lang=en&limit=100`);
+            // Fetch Chapters (Limit increased to 5000)
+            const chapReq = await fetch(`https://api.comick.io/comic/${targetId}/chapters?lang=en&limit=5000`);
             const chapData = await chapReq.json();
-            chapters = chapData.chapters.map(c => ({
-                id: c.hid,
-                num: c.chap || 'Oneshot',
-                title: c.title || `Chapter ${c.chap}`
-            }));
+            
+            const uniqueChapters = new Map();
+            chapData.chapters.forEach(c => {
+                const chapNum = c.chap || 'Oneshot';
+                if (!uniqueChapters.has(chapNum)) {
+                    uniqueChapters.set(chapNum, {
+                        id: c.hid,
+                        num: chapNum,
+                        title: c.title || `Chapter ${chapNum}`
+                    });
+                }
+            });
+            chapters = Array.from(uniqueChapters.values());
         }
 
         renderDetailsUI(manga, chapters);
