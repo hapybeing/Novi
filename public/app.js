@@ -23,7 +23,6 @@ function resetHome() {
 const Sources = {
     MangaDex: async (query) => {
         try {
-            // FIXED: Added order[relevance]=desc so MangaDex actually returns correct results
             const res = await fetch(`https://api.mangadex.org/manga?title=${encodeURIComponent(query)}&limit=15&includes[]=cover_art&order[relevance]=desc`);
             if (!res.ok) throw new Error('MangaDex Blocked');
             const data = await res.json();
@@ -69,11 +68,18 @@ async function searchAllSources(query) {
     renderGrid(masterLibrary, resultsGrid);
 }
 
-// Netflix-Style Auto Load
+// Netflix-Style Auto Load (UPDATED FOR SAFETY AND ERROR LOGGING)
 async function getTrending() {
     try {
-        // Fetching top followed manga from MangaDex for the home screen
-        const res = await fetch(`https://api.mangadex.org/manga?includes[]=cover_art&order[followedCount]=desc&limit=10&hasAvailableChapters=true`);
+        // Safer API query: Fetching 15 recent English-translated mangas with covers
+        const res = await fetch('https://api.mangadex.org/manga?includes[]=cover_art&limit=15&availableTranslatedLanguage[]=en');
+        
+        // If the server rejects it, capture the exact error message
+        if (!res.ok) {
+            const errData = await res.text();
+            throw new Error(`HTTP ${res.status} | ${errData.substring(0, 50)}...`);
+        }
+        
         const data = await res.json();
         
         const trending = data.data.map(manga => {
@@ -85,7 +91,8 @@ async function getTrending() {
 
         renderGrid(trending, trendingGrid);
     } catch (err) {
-        trendingGrid.innerHTML = `<div class="system-msg" style="color: #ef4444;">Failed to load trending data.</div>`;
+        // Inject the raw error directly into the UI for debugging
+        trendingGrid.innerHTML = `<div class="system-msg" style="color: #ef4444;">API Error: ${err.message}</div>`;
     }
 }
 
