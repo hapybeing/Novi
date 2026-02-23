@@ -1,108 +1,64 @@
-:root {
-    --bg-main: #050505;
-    --bg-surface: #121212;
-    --text-primary: #ffffff;
-    --text-muted: #888888;
-    --accent: #6d28d9; /* Deep purple accent */
-    --accent-hover: #5b21b6;
-    --border: #222222;
+/* Netflix UI Additions */
+.category-scroll {
+    display: flex;
+    gap: 1rem;
+    padding: 0 2rem 2rem;
+    overflow-x: auto;
+    scrollbar-width: none; /* Firefox */
 }
-
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+.category-scroll::-webkit-scrollbar {
+    display: none; /* Chrome/Safari */
 }
-
-body {
-    background-color: var(--bg-main);
-    color: var(--text-primary);
-    -webkit-font-smoothing: antialiased;
+.category-pill {
+    background: #1a1a1a;
+    border: 1px solid #333;
+    padding: 0.8rem 1.5rem;
+    border-radius: 30px;
+    white-space: nowrap;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
 }
-
-.top-nav {
+.category-pill:hover {
+    background: var(--accent);
+    border-color: var(--accent);
+}
+.trending-section {
+    padding: 0 0 3rem 0;
+}
+.section-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 1.5rem 2rem;
-    background: rgba(5, 5, 5, 0.8);
-    backdrop-filter: blur(10px);
-    border-bottom: 1px solid var(--border);
-    position: sticky;
-    top: 0;
-    z-index: 100;
+    padding: 0 2rem;
+    margin-bottom: 1rem;
 }
-
-.logo {
-    font-size: 1.8rem;
-    font-weight: 900;
-    letter-spacing: 2px;
+.section-header h2 {
+    font-size: 1.4rem;
 }
-
-.nav-links span {
-    margin-left: 1.5rem;
+.view-all {
     color: var(--text-muted);
-    font-weight: 600;
+    font-size: 0.9rem;
     cursor: pointer;
-    transition: color 0.2s ease;
 }
-
-.nav-links span.active, .nav-links span:hover {
-    color: var(--text-primary);
+.view-all:hover {
+    color: var(--accent);
 }
-
-.search-section {
-    padding: 3rem 2rem;
+.horizontal-scroll {
     display: flex;
-    justify-content: center;
-}
-
-.search-box {
-    display: flex;
-    width: 100%;
-    max-width: 600px;
-    background: var(--bg-surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    overflow: hidden;
-}
-
-.search-box input {
-    flex: 1;
-    background: transparent;
-    border: none;
-    padding: 1rem 1.5rem;
-    color: var(--text-primary);
-    font-size: 1.1rem;
-    outline: none;
-}
-
-.search-box button {
-    background: var(--accent);
-    color: white;
-    border: none;
-    padding: 0 2rem;
-    font-weight: bold;
-    cursor: pointer;
-    transition: background 0.2s;
-}
-
-.search-box button:hover {
-    background: var(--accent-hover);
-}
-
-.results-grid {
-    padding: 0 2rem;
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
     gap: 1.5rem;
+    padding: 0 2rem;
+    overflow-x: auto;
+    scrollbar-width: none;
 }
-
-.system-msg {
-    grid-column: 1 / -1;
-    text-align: center;
-    color: var(--text-muted);
-    padding: 4rem 0;
-    font-family: monospace;
+.horizontal-scroll::-webkit-scrollbar {
+    display: none;
+}
+.horizontal-scroll > div {
+    min-width: 160px;
+    max-width: 160px;
+    flex-shrink: 0;
 }
