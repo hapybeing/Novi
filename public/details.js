@@ -1,7 +1,7 @@
 const detailsMain = document.getElementById('detailsMain');
 const urlParams = new URLSearchParams(window.location.search);
 const targetId = urlParams.get('id');
-const source = urlParams.get('source');
+const source = urlParams.get('source'); // Used internally, not displayed
 
 async function loadDetails() {
     if (!targetId || !source) {
@@ -82,7 +82,7 @@ function renderDetailsUI(manga, chapters) {
                      onmouseout="this.style.borderColor='var(--border)'">
                     <div style="font-weight: bold; font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${c.num}</div>
                 </div>
-            `).join('') : '<div class="system-msg">No English chapters available on this specific server. Try hunting for the alternative source.</div>'}
+            `).join('') : '<div class="system-msg">No English chapters located. Target may be licensed or purged.</div>'}
         </div>
     `;
 }
