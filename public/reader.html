@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Novi - Reader</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body style="background: #000;">
+    <header style="position: fixed; top: 0; left: 0; width: 100%; padding: 1rem; background: rgba(0,0,0,0.8); backdrop-filter: blur(10px); z-index: 100; border-bottom: 1px solid var(--border);">
+        <button onclick="history.back()" style="background: var(--bg-surface); color: var(--text-primary); border: 1px solid var(--border); padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-weight: bold;">← Back to Chapters</button>
+    </header>
+
+    <main id="readerMain" style="display: flex; flex-direction: column; align-items: center; padding-top: 5rem; width: 100%;">
+        <div class="system-msg" style="color: var(--accent); margin-top: 5rem;">Extracting image payloads...</div>
+    </main>
+
+    <script src="reader.js"></script>
+</body>
+</html>
