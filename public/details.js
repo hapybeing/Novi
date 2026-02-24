@@ -18,7 +18,6 @@ async function loadDetails() {
             const infoData = await infoReq.json();
             const mdData = infoData.data;
             
-            // Force English Title extraction
             manga.title = mdData.attributes.title.en;
             if (!manga.title && mdData.attributes.altTitles) {
                 const alt = mdData.attributes.altTitles.find(t => t.en);
@@ -41,24 +40,31 @@ async function loadDetails() {
             });
             chapters = Array.from(uniqueChapters.values());
 
-        } else if (source === 'ComicK') {
-            const infoReq = await fetch(`https://api.comick.io/comic/${targetId}`);
-            const infoData = await infoReq.json();
+        } else if (source === 'Manganato') {
+            // Manganato domains fluctuate, we check chapmanganato first
+            let res = await fetch(`https://chapmanganato.to/${targetId}`);
+            if (res.status === 404) res = await fetch(`https://manganato.com/${targetId}`);
             
-            manga.title = infoData.comic.title;
-            manga.desc = infoData.comic.desc || 'No description available.';
-            manga.cover = infoData.comic.md_covers ? `https://meo.comick.pictures/${infoData.comic.md_covers[0].b2key}` : '';
+            const text = await res.text();
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(text, 'text/html');
 
-            const chapReq = await fetch(`https://api.comick.io/comic/${targetId}/chapters?lang=en&limit=5000`);
-            const chapData = await chapReq.json();
-            
-            const uniqueChapters = new Map();
-            chapData.chapters.forEach(c => {
-                const chapKey = c.chap || c.title || c.hid;
-                let display = c.chap ? `Ch. ${c.chap}` : (c.title || 'Extra');
-                if (!uniqueChapters.has(chapKey)) uniqueChapters.set(chapKey, { id: c.hid, num: display });
+            const titleNode = doc.querySelector('.story-info-right h1');
+            manga.title = titleNode ? titleNode.textContent.trim() : 'Unknown';
+
+            const descNode = doc.querySelector('#panel-story-info-description');
+            manga.desc = descNode ? descNode.textContent.replace('Description :', '').trim() : 'No description available.';
+
+            const imgNode = doc.querySelector('.info-image img');
+            manga.cover = imgNode ? imgNode.src : '';
+
+            // Extract chapters from the HTML list
+            const chapNodes = doc.querySelectorAll('.row-content-chapter a');
+            chapNodes.forEach(node => {
+                const chapTitle = node.textContent.trim();
+                const chapId = node.href.substring(node.href.lastIndexOf('/') + 1);
+                chapters.push({ id: chapId, num: chapTitle });
             });
-            chapters = Array.from(uniqueChapters.values());
         }
 
         renderDetailsUI(manga, chapters);
@@ -71,7 +77,6 @@ async function loadDetails() {
 function renderDetailsUI(manga, chapters) {
     let chaptersHTML = '';
 
-    // If chapters exist, map them out.
     if (chapters.length > 0) {
         chaptersHTML = `<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 1rem;">` + 
             chapters.map(c => `
@@ -83,7 +88,6 @@ function renderDetailsUI(manga, chapters) {
                 </div>
             `).join('') + `</div>`;
     } else {
-        // THE DMCA FALLBACK ROUTER
         chaptersHTML = `
             <div style="text-align: center; padding: 3rem 1rem; background: var(--bg-surface); border: 1px solid var(--border); border-radius: 8px;">
                 <div style="color: var(--text-muted); margin-bottom: 1.5rem; font-size: 1.1rem;">Target purged. No English chapters exist on this server.</div>
