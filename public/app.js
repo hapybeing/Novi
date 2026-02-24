@@ -70,7 +70,15 @@ const Sources = {
             let url = `https://api.comick.io/v1.0/search?q=${encodeURIComponent(query)}&limit=15`;
             if (ckTags[query]) url = `https://api.comick.io/v1.0/search?genres=${ckTags[query]}&limit=15&sort=follow`;
             
-            const res = await fetch(url);
+            // --- CLOUDFLARE SPOOFING HEADERS ---
+            // Tricking the server into thinking this is a real Android Phone using Chrome
+            const spoofHeaders = {
+                "User-Agent": "Mozilla/5.0 (Linux; Android 13; Pixel 7 Pro) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Mobile Safari/537.36",
+                "Referer": "https://comick.io/",
+                "Origin": "https://comick.io"
+            };
+            
+            const res = await fetch(url, { headers: spoofHeaders });
             if (!res.ok) throw new Error('Blocked');
             const data = await res.json();
             
@@ -116,16 +124,18 @@ async function getTrending() {
             return { id: manga.id, title, cover: coverUrl, source: 'MangaDex' };
         });
 
-        renderGrid(trending, trendingGrid);
+        // For the home screen, we still hide the sources to keep it looking clean and premium
+        renderGrid(trending, trendingGrid, true);
     } catch (err) {
         trendingGrid.innerHTML = `<div class="system-msg" style="color: #ef4444;">API Error: ${err.message}</div>`;
     }
 }
 
 // --- UI Rendering ---
-function renderGrid(library, container) {
+// Added a toggle so sources are hidden on the home screen, but VISIBLE in search results
+function renderGrid(library, container, hideSource = false) {
     if (library.length === 0) {
-        container.innerHTML = `<div class="system-msg" style="color: #ef4444;">No results found.</div>`;
+        container.innerHTML = `<div class="system-msg" style="color: #ef4444;">Target evaded sweeps. No results found.</div>`;
         return;
     }
 
@@ -134,7 +144,8 @@ function renderGrid(library, container) {
              onclick="window.location.href='details.html?id=${item.id}&source=${item.source}'">
             <img src="${item.cover}" style="width: 100%; aspect-ratio: 2/3; object-fit: cover; background: #222;" loading="lazy" referrerpolicy="no-referrer">
             <div style="padding: 1rem; flex: 1; display: flex; flex-direction: column; justify-content: center;">
-                <div style="font-size: 0.9rem; font-weight: 600; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${item.title}</div>
+                <div style="font-size: 0.9rem; font-weight: 600; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; ${hideSource ? '' : 'margin-bottom: 0.5rem;'}">${item.title}</div>
+                ${hideSource ? '' : `<div style="font-size: 0.7rem; color: var(--accent); font-weight: bold; text-transform: uppercase;">[ ${item.source} ]</div>`}
             </div>
         </div>
     `).join('');
