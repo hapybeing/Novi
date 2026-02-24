@@ -37,13 +37,6 @@ const mdTags = {
     'Isekai': 'ace04997-f6bd-436e-b261-779182101046',
     'Fantasy': 'cdc58593-87dd-415e-bbc0-2ec27bf404cc'
 };
-const ckTags = {
-    'Yaoi': 'boys-love',
-    'Yuri': 'girls-love',
-    'Action': 'action',
-    'Isekai': 'isekai',
-    'Fantasy': 'fantasy'
-};
 
 // --- Source Modules ---
 const Sources = {
@@ -65,26 +58,28 @@ const Sources = {
         } catch (err) { return []; }
     },
     
-    ComicK: async (query) => {
+    // THE RAW HTML SCRAPER
+    Manganato: async (query) => {
         try {
-            let url = `https://api.comick.io/v1.0/search?q=${encodeURIComponent(query)}&limit=15`;
-            if (ckTags[query]) url = `https://api.comick.io/v1.0/search?genres=${ckTags[query]}&limit=15&sort=follow`;
+            // Manganato URLs replace spaces with underscores
+            const formattedQuery = query.toLowerCase().replace(/[^a-z0-9]/g, '_');
+            const res = await fetch(`https://manganato.com/search/story/${formattedQuery}`);
+            const text = await res.text();
             
-            // --- CLOUDFLARE SPOOFING HEADERS ---
-            // Tricking the server into thinking this is a real Android Phone using Chrome
-            const spoofHeaders = {
-                "User-Agent": "Mozilla/5.0 (Linux; Android 13; Pixel 7 Pro) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Mobile Safari/537.36",
-                "Referer": "https://comick.io/",
-                "Origin": "https://comick.io"
-            };
+            // Rip the HTML apart
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(text, 'text/html');
+            const items = Array.from(doc.querySelectorAll('.search-story-item')).slice(0, 15);
             
-            const res = await fetch(url, { headers: spoofHeaders });
-            if (!res.ok) throw new Error('Blocked');
-            const data = await res.json();
-            
-            return data.map(manga => {
-                const coverUrl = manga.md_covers && manga.md_covers[0] ? `https://meo.comick.pictures/${manga.md_covers[0].b2key}` : '';
-                return { id: manga.hid, title: manga.title || 'Unknown', cover: coverUrl, source: 'ComicK' };
+            return items.map(item => {
+                const aTag = item.querySelector('.item-title');
+                const imgTag = item.querySelector('img');
+                const title = aTag ? aTag.textContent.trim() : 'Unknown';
+                const coverUrl = imgTag ? imgTag.src : '';
+                const url = aTag ? aTag.href : '';
+                const id = url.substring(url.lastIndexOf('/') + 1); // Extracts the "manga-xxxx" ID
+                
+                return { id, title, cover: coverUrl, source: 'Manganato' };
             });
         } catch (err) { return []; }
     }
@@ -99,7 +94,7 @@ async function searchAllSources(query) {
     showSearch();
     resultsGrid.innerHTML = `<div class="system-msg" style="color: var(--accent);">Executing sweep for: ${query}...</div>`;
     
-    const fetchPromises = [ Sources.MangaDex(query), Sources.ComicK(query) ];
+    const fetchPromises = [ Sources.MangaDex(query), Sources.Manganato(query) ];
     const results = await Promise.allSettled(fetchPromises);
     
     let masterLibrary = [];
@@ -124,7 +119,6 @@ async function getTrending() {
             return { id: manga.id, title, cover: coverUrl, source: 'MangaDex' };
         });
 
-        // For the home screen, we still hide the sources to keep it looking clean and premium
         renderGrid(trending, trendingGrid, true);
     } catch (err) {
         trendingGrid.innerHTML = `<div class="system-msg" style="color: #ef4444;">API Error: ${err.message}</div>`;
@@ -132,7 +126,6 @@ async function getTrending() {
 }
 
 // --- UI Rendering ---
-// Added a toggle so sources are hidden on the home screen, but VISIBLE in search results
 function renderGrid(library, container, hideSource = false) {
     if (library.length === 0) {
         container.innerHTML = `<div class="system-msg" style="color: #ef4444;">Target evaded sweeps. No results found.</div>`;
@@ -155,7 +148,7 @@ function renderGrid(library, container, hideSource = false) {
 searchBtn.addEventListener('click', () => searchAllSources(searchInput.value.trim()));
 searchInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') searchAllSources(searchInput.value.trim()); });
 
-// --- INITIALIZE APP (Checks for Auto-Search Router) ---
+// --- INITIALIZE APP ---
 document.addEventListener('DOMContentLoaded', () => {
     const urlParams = new URLSearchParams(window.location.search);
     const huntQuery = urlParams.get('search');
