@@ -19,6 +19,16 @@ function resetHome() {
     resultsGrid.innerHTML = '';
 }
 
+// --- Title Extractor (Forces English) ---
+function getEnTitle(manga) {
+    if (manga.attributes.title.en) return manga.attributes.title.en;
+    if (manga.attributes.altTitles && manga.attributes.altTitles.length > 0) {
+        const alt = manga.attributes.altTitles.find(t => t.en);
+        if (alt) return alt.en;
+    }
+    return Object.values(manga.attributes.title)[0] || 'Unknown';
+}
+
 // --- Category Tag Dictionaries ---
 const mdTags = {
     'Yaoi': '5920b825-4181-4a17-beeb-9918b0ff7a30',
@@ -47,7 +57,7 @@ const Sources = {
             const data = await res.json();
             
             return data.data.map(manga => {
-                const title = manga.attributes.title.en || Object.values(manga.attributes.title)[0] || 'Unknown';
+                const title = getEnTitle(manga);
                 const coverRel = manga.relationships.find(r => r.type === 'cover_art');
                 const coverUrl = coverRel ? `https://uploads.mangadex.org/covers/${manga.id}/${coverRel.attributes.fileName}.256.jpg` : '';
                 return { id: manga.id, title, cover: coverUrl, source: 'MangaDex' };
@@ -92,16 +102,15 @@ async function searchAllSources(query) {
     renderGrid(masterLibrary, resultsGrid);
 }
 
-// --- STABLE HOME SCREEN (Reverted to MangaDex) ---
+// --- STABLE HOME SCREEN ---
 async function getTrending() {
     try {
-        // Pulling the most followed, English-translated manga to ensure the UI looks premium
         const res = await fetch('https://api.mangadex.org/manga?includes[]=cover_art&order[followedCount]=desc&limit=15&hasAvailableChapters=true&availableTranslatedLanguage[]=en');
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         
         const data = await res.json();
         const trending = data.data.map(manga => {
-            const title = manga.attributes.title.en || Object.values(manga.attributes.title)[0] || 'Unknown';
+            const title = getEnTitle(manga);
             const coverRel = manga.relationships.find(r => r.type === 'cover_art');
             const coverUrl = coverRel ? `https://uploads.mangadex.org/covers/${manga.id}/${coverRel.attributes.fileName}.256.jpg` : '';
             return { id: manga.id, title, cover: coverUrl, source: 'MangaDex' };
@@ -134,4 +143,14 @@ function renderGrid(library, container) {
 // --- Event Listeners ---
 searchBtn.addEventListener('click', () => searchAllSources(searchInput.value.trim()));
 searchInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') searchAllSources(searchInput.value.trim()); });
-document.addEventListener('DOMContentLoaded', getTrending);
+
+// --- INITIALIZE APP (Checks for Auto-Search Router) ---
+document.addEventListener('DOMContentLoaded', () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const huntQuery = urlParams.get('search');
+    if (huntQuery) {
+        searchAllSources(huntQuery);
+    } else {
+        getTrending();
+    }
+});
