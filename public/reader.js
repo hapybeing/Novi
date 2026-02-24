@@ -21,18 +21,21 @@ async function loadPages() {
             if (!res.ok) throw new Error('Server rejected request');
             const data = await res.json();
             imageUrls = data.chapter.data.map(fileName => `${data.baseUrl}/data/${data.chapter.hash}/${fileName}`);
-        } else if (source === 'ComicK') {
-            const res = await fetch(`https://api.comick.io/chapter/${chapterId}`);
-            if (!res.ok) throw new Error('Server rejected request');
-            const data = await res.json();
-            if (data.chapter && data.chapter.images) {
-                imageUrls = data.chapter.images.map(img => img.url);
-            }
+            
+        } else if (source === 'Manganato') {
+            // Rip images directly from the HTML reader container
+            let res = await fetch(`https://chapmanganato.to/${mangaId}/${chapterId}`);
+            if (res.status === 404) res = await fetch(`https://manganato.com/${mangaId}/${chapterId}`);
+            
+            const text = await res.text();
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(text, 'text/html');
+
+            const imgNodes = doc.querySelectorAll('.container-chapter-reader img');
+            imageUrls = Array.from(imgNodes).map(img => img.src);
         }
 
         renderImages(imageUrls);
-        
-        // Fetch chapters in background for the Navigation Bar
         if (mangaId) fetchChapterList();
 
     } catch (err) {
@@ -51,15 +54,18 @@ async function fetchChapterList() {
                 if (!unique.has(chapKey)) unique.set(chapKey, { id: c.id });
             });
             allChapters = Array.from(unique.values());
-        } else if (source === 'ComicK') {
-            const req = await fetch(`https://api.comick.io/comic/${mangaId}/chapters?lang=en&limit=5000`);
-            const data = await req.json();
-            const unique = new Map();
-            data.chapters.forEach(c => {
-                const chapKey = c.chap || c.title || c.hid;
-                if (!unique.has(chapKey)) unique.set(chapKey, { id: c.hid });
+            
+        } else if (source === 'Manganato') {
+            let res = await fetch(`https://chapmanganato.to/${mangaId}`);
+            if (res.status === 404) res = await fetch(`https://manganato.com/${mangaId}`);
+            const text = await res.text();
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(text, 'text/html');
+            const chapNodes = doc.querySelectorAll('.row-content-chapter a');
+            chapNodes.forEach(node => {
+                const cId = node.href.substring(node.href.lastIndexOf('/') + 1);
+                allChapters.push({ id: cId });
             });
-            allChapters = Array.from(unique.values());
         }
 
         currentIndex = allChapters.findIndex(c => c.id === chapterId);
@@ -71,8 +77,6 @@ function updateNavButtons() {
     const prevBtn = document.getElementById('prevBtn');
     const nextBtn = document.getElementById('nextBtn');
     
-    // Chapters are sorted newest to oldest. 
-    // Next Chapter = Index - 1 | Prev Chapter = Index + 1
     if (currentIndex > 0) {
         nextBtn.onclick = () => window.location.href = `reader.html?chapterId=${allChapters[currentIndex - 1].id}&source=${source}&mangaId=${mangaId}`;
         nextBtn.style.opacity = "1";
@@ -87,9 +91,10 @@ function updateNavButtons() {
 
 function renderImages(urls) {
     if (urls.length === 0) {
-        readerMain.innerHTML = `<div class="system-msg" style="margin-top: 5rem;">No pages found. (External link payload)</div>`;
+        readerMain.innerHTML = `<div class="system-msg" style="margin-top: 5rem;">No pages found. (Target blocked extraction)</div>`;
         return;
     }
+    // Note: The referrerpolicy="no-referrer" tag is what forces Manganato's servers to load the image
     readerMain.innerHTML = urls.map(url => `
         <img src="${url}" style="width: 100%; max-width: 800px; display: block; margin: 0 auto;" loading="lazy" referrerpolicy="no-referrer">
     `).join('');
