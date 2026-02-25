@@ -23,14 +23,15 @@ async function loadPages() {
             imageUrls = data.chapter.data.map(fileName => `${data.baseUrl}/data/${data.chapter.hash}/${fileName}`);
             
         } else if (source === 'Manganato') {
-            // Rip images directly from the HTML reader container
+            // Manganato Reader Scraper
             let res = await fetch(`https://chapmanganato.to/${mangaId}/${chapterId}`);
+            if (res.status === 403) throw new Error('Shield Active');
             if (res.status === 404) res = await fetch(`https://manganato.com/${mangaId}/${chapterId}`);
             
             const text = await res.text();
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(text, 'text/html');
+            const doc = new DOMParser().parseFromString(text, 'text/html');
 
+            // Select all images inside the main reader container
             const imgNodes = doc.querySelectorAll('.container-chapter-reader img');
             imageUrls = Array.from(imgNodes).map(img => img.src);
         }
@@ -39,7 +40,13 @@ async function loadPages() {
         if (mangaId) fetchChapterList();
 
     } catch (err) {
-        readerMain.innerHTML = `<div class="system-msg" style="color: #ef4444; margin-top: 5rem;">Extraction failed. Connection severed.</div>`;
+        let msg = err.message === 'Shield Active' ? 'Cloudflare Blocked Extraction.' : 'Extraction Failed.';
+        readerMain.innerHTML = `
+            <div style="text-align: center; padding: 5rem 1rem;">
+                <div style="color: #ef4444; margin-bottom: 2rem;">${msg}</div>
+                ${source === 'Manganato' ? `<button onclick="window.open('https://chapmanganato.to/${mangaId}/${chapterId}', '_blank')" style="background: var(--accent); color: white; padding: 1rem 2rem; border-radius: 8px; border: none; font-weight: bold;">Break Shield</button>` : ''}
+            </div>
+        `;
     }
 }
 
@@ -57,13 +64,11 @@ async function fetchChapterList() {
             
         } else if (source === 'Manganato') {
             let res = await fetch(`https://chapmanganato.to/${mangaId}`);
-            if (res.status === 404) res = await fetch(`https://manganato.com/${mangaId}`);
             const text = await res.text();
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(text, 'text/html');
+            const doc = new DOMParser().parseFromString(text, 'text/html');
             const chapNodes = doc.querySelectorAll('.row-content-chapter a');
             chapNodes.forEach(node => {
-                const cId = node.href.substring(node.href.lastIndexOf('/') + 1);
+                const cId = node.href.split('/').pop();
                 allChapters.push({ id: cId });
             });
         }
@@ -77,6 +82,7 @@ function updateNavButtons() {
     const prevBtn = document.getElementById('prevBtn');
     const nextBtn = document.getElementById('nextBtn');
     
+    // Chapters are sorted newest to oldest.
     if (currentIndex > 0) {
         nextBtn.onclick = () => window.location.href = `reader.html?chapterId=${allChapters[currentIndex - 1].id}&source=${source}&mangaId=${mangaId}`;
         nextBtn.style.opacity = "1";
@@ -91,10 +97,10 @@ function updateNavButtons() {
 
 function renderImages(urls) {
     if (urls.length === 0) {
-        readerMain.innerHTML = `<div class="system-msg" style="margin-top: 5rem;">No pages found. (Target blocked extraction)</div>`;
+        readerMain.innerHTML = `<div class="system-msg" style="margin-top: 5rem;">No pages found. (External link or Shielded)</div>`;
         return;
     }
-    // Note: The referrerpolicy="no-referrer" tag is what forces Manganato's servers to load the image
+    // Using no-referrer is mandatory for Manganato images to load natively
     readerMain.innerHTML = urls.map(url => `
         <img src="${url}" style="width: 100%; max-width: 800px; display: block; margin: 0 auto;" loading="lazy" referrerpolicy="no-referrer">
     `).join('');
